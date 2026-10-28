@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Transmisión de Partido</title>
+    <title>Transmisión de Partido - Oficial</title>
     <style>
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
@@ -12,23 +12,47 @@
         }
         video { width: 100%; height: 100%; object-fit: contain; display: none; }
         
-        /* Estilos de la sala de espera */
+        /* Sala de espera */
         #pantallaEspera { display: flex; flex-direction: column; align-items: center; }
         h1 { font-size: 4vw; margin-bottom: 10px; color: #cbd5e1; }
         #cuentaRegresiva { font-size: 8vw; font-weight: bold; color: #10b981; }
         .mensaje { font-size: 2vw; color: #64748b; margin-top: 20px; }
+        
+        /* Botones de Audio */
+        .btn-audio {
+            padding: 15px 40px; font-size: 2vw; background-color: #ef4444; 
+            color: white; border: none; border-radius: 12px; cursor: pointer; 
+            font-weight: bold; transition: 0.3s; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        .btn-audio:hover { background-color: #dc2626; }
+        .btn-audio.activado { background-color: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+
+        /* Botón flotante para los que entran tarde */
+        #btnAudioFlotante {
+            position: absolute; top: 30px; right: 30px; z-index: 50; 
+            display: none; padding: 15px 30px; font-size: 1.8vw;
+            animation: palpitar 2s infinite;
+        }
+
+        @keyframes palpitar {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
     
-    <!-- Pantalla que se muestra antes del partido -->
     <div id="pantallaEspera">
         <h1>La transmisión en vivo comienza en:</h1>
         <div id="cuentaRegresiva">Calculando...</div>
         <div class="mensaje">Toma asiento, el partido se sincronizará automáticamente.</div>
+        <button id="btnAudioEspera" class="btn-audio" style="margin-top: 30px;" onclick="activarAudio()">🔇 Haz clic aquí para activar el sonido</button>
     </div>
 
-    <!-- El reproductor de video -->
+    <!-- Botón salvavidas para los que entran tarde -->
+    <button id="btnAudioFlotante" class="btn-audio" onclick="activarAudio()">🔇 Clic para activar Sonido</button>
+
     <video id="tvChannel" preload="auto">
         <source src="https://objectstorage.us-ashburn-1.oraclecloud.com/n/idsnhb2bf1vi/b/bucket-20261028-1356/o/partido.mp4" type="video/mp4">
     </video>
@@ -37,19 +61,29 @@
         const video = document.getElementById('tvChannel');
         const pantallaEspera = document.getElementById('pantallaEspera');
         const textoCuenta = document.getElementById('cuentaRegresiva');
+        const btnAudioEspera = document.getElementById('btnAudioEspera');
+        const btnAudioFlotante = document.getElementById('btnAudioFlotante');
 
-        // 🔴 AQUÍ CONFIGURAS LA HORA EXACTA DEL ESTRENO 🔴
-        // Formato: AAAA-MM-DDTHH:MM:00-05:00 (-05:00 es la zona horaria exacta de Ecuador)
+        // 🔴 HORA OFICIAL: 14:45 de Ecuador 🔴
         const horaEstreno = new Date("2026-10-28T14:45:00-05:00").getTime();
 
         let reproduccionIniciada = false;
+
+        function activarAudio() {
+            video.muted = false;
+            
+            // Actualiza la UI de ambos botones
+            btnAudioEspera.innerText = "🔊 Sonido Activado y Listo";
+            btnAudioEspera.classList.add("activado");
+            btnAudioFlotante.style.display = "none";
+        }
 
         function sincronizarCanal() {
             const ahora = Date.now();
             const diferenciaSegundos = Math.floor((horaEstreno - ahora) / 1000);
 
             if (diferenciaSegundos > 0) {
-                // Aún no es la hora: Mostrar cuenta regresiva (Horas, Minutos, Segundos)
+                // Cuenta regresiva
                 const horas = Math.floor(diferenciaSegundos / 3600);
                 const minutos = Math.floor((diferenciaSegundos % 3600) / 60);
                 const segundos = diferenciaSegundos % 60;
@@ -57,10 +91,9 @@
                 let textoTimer = "";
                 if (horas > 0) textoTimer += `${horas}h `;
                 textoTimer += `${minutos}m ${segundos}s`;
-                
                 textoCuenta.innerText = textoTimer;
             } else {
-                // Ya pasó la hora de estreno: Iniciar el partido
+                // Modo transmisión
                 if (!reproduccionIniciada) {
                     pantallaEspera.style.display = 'none';
                     video.style.display = 'block';
@@ -68,30 +101,31 @@
                 }
 
                 if (video.duration) {
-                    // Calcula cuántos segundos han pasado desde las 14:45
                     const tiempoTranscurrido = Math.floor((ahora - horaEstreno) / 1000);
-                    
-                    // Con el %, si el partido dura 2 horas y alguien entra a las 3 horas, el video vuelve a empezar (Canal 24/7)
                     const segundoExacto = tiempoTranscurrido % video.duration;
 
-                    // Si el video de un jugador se desfasa por más de 3 segundos (por lag del servidor o carga), lo corrige forzosamente
+                    // Ajuste fino para mantener a todos en el mismo segundo
                     if (Math.abs(video.currentTime - segundoExacto) > 3) {
                         video.currentTime = segundoExacto;
                     }
 
-                    // Forzar reproducción
                     if (video.paused) {
                         video.play().catch(() => {
-                            // En Minecraft a veces pide silenciar el primer click
                             video.muted = true;
                             video.play();
                         });
+                    }
+
+                    // EL RADAR: Si el video ya está rodando pero está silenciado (ej. alguien entró tarde), muestra el botón flotante
+                    if (reproduccionIniciada && video.muted) {
+                        btnAudioFlotante.style.display = "block";
+                    } else {
+                        btnAudioFlotante.style.display = "none";
                     }
                 }
             }
         }
 
-        // Ejecutar el reloj interno cada 1 segundo (1000 ms)
         setInterval(sincronizarCanal, 1000);
     </script>
 </body>
