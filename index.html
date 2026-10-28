@@ -5,28 +5,48 @@
 <title>Final Sudamericana</title>
 
 <style>
-html,body{
-    margin:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:black;
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: black;
 }
 
-iframe{
-    width:100vw;
-    height:100vh;
-    border:none;
+#player-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+#blocker {
+    position: absolute;
+    inset: 0;
+    z-index: 9999;
+    background: transparent;
 }
 </style>
 </head>
+
 <body>
 
-<iframe
-src="https://www.youtube-nocookie.com/embed/_GXcnKfDN-g?autoplay=1&mute=1&controls=1"
-allow="autoplay; fullscreen"
-allowfullscreen>
-</iframe>
+<div id="player-container">
+
+    <iframe
+        src="https://www.youtube-nocookie.com/embed/_GXcnKfDN-g?autoplay=1&mute=0&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0"
+        allow="autoplay; fullscreen"
+        allowfullscreen>
+    </iframe>
+
+    <div id="blocker"></div>
+
+</div>
 
 </body>
 </html>
