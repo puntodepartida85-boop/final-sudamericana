@@ -27,9 +27,9 @@
         .btn-audio:hover { background-color: #dc2626; }
         .btn-audio.activado { background-color: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
 
-        /* Botón flotante para los que entran tarde */
+        /* Botón flotante para los que entran tarde (Abajo a la izquierda) */
         #btnAudioFlotante {
-            position: absolute; top: 30px; right: 30px; z-index: 50; 
+            position: absolute; bottom: 30px; left: 30px; z-index: 50; 
             display: none; padding: 15px 30px; font-size: 1.8vw;
             animation: palpitar 2s infinite;
         }
@@ -71,6 +71,7 @@
 
         function activarAudio() {
             video.muted = false;
+            video.volume = 1.0; // Fuerza el volumen al 100%
             
             // Actualiza la UI de ambos botones
             btnAudioEspera.innerText = "🔊 Sonido Activado y Listo";
@@ -116,7 +117,7 @@
                         });
                     }
 
-                    // EL RADAR: Si el video ya está rodando pero está silenciado (ej. alguien entró tarde), muestra el botón flotante
+                    // EL RADAR: Si el video ya está rodando pero está silenciado, muestra el botón flotante
                     if (reproduccionIniciada && video.muted) {
                         btnAudioFlotante.style.display = "block";
                     } else {
