@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Partido</title>
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    overflow: hidden;
+}
+
+video {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" autoplay controls playsinline>
+    <source src="partido.mp4" type="video/mp4">
+</video>
+
+<script>
+const video = document.getElementById("video");
+
+// Hora de inicio Ecuador
+const START_HOUR = 14;
+const START_MINUTE = 45;
+
+function syncVideo() {
+
+    const now = new Date();
+
+    const startTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        START_HOUR,
+        START_MINUTE,
+        0
+    );
+
+    const elapsed = (now - startTime) / 1000;
+
+    if (elapsed < 0) {
+        video.pause();
+        return;
+    }
+
+    if (Math.abs(video.currentTime - elapsed) > 2) {
+        video.currentTime = elapsed;
+    }
+
+    if (video.paused) {
+        video.play().catch(() => {});
+    }
+
+    video.muted = false;
+    video.volume = 1;
+}
+
+syncVideo();
+setInterval(syncVideo, 5000);
+</script>
+
+</body>
+</html>
