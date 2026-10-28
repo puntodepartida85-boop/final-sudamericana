@@ -1,113 +1,98 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Final Sudamericana</title>
-
-<style>
-html,body{
-    width:100%;
-    height:100%;
-    margin:0;
-    overflow:hidden;
-    background:#000;
-}
-
-#player{
-    position:fixed;
-    inset:0;
-}
-
-#blocker{
-    position:fixed;
-    inset:0;
-    z-index:9999;
-}
-</style>
+    <meta charset="UTF-8">
+    <title>Transmisión de Partido</title>
+    <style>
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: black; overflow: hidden; color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; justify-content: center; align-items: center; text-align: center; 
+        }
+        video { width: 100%; height: 100%; object-fit: contain; display: none; }
+        
+        /* Estilos de la sala de espera */
+        #pantallaEspera { display: flex; flex-direction: column; align-items: center; }
+        h1 { font-size: 4vw; margin-bottom: 10px; color: #cbd5e1; }
+        #cuentaRegresiva { font-size: 8vw; font-weight: bold; color: #10b981; }
+        .mensaje { font-size: 2vw; color: #64748b; margin-top: 20px; }
+    </style>
 </head>
 <body>
+    
+    <!-- Pantalla que se muestra antes del partido -->
+    <div id="pantallaEspera">
+        <h1>La transmisión en vivo comienza en:</h1>
+        <div id="cuentaRegresiva">Calculando...</div>
+        <div class="mensaje">Toma asiento, el partido se sincronizará automáticamente.</div>
+    </div>
 
-<div id="player"></div>
-<div id="blocker"></div>
+    <!-- El reproductor de video -->
+    <video id="tvChannel" preload="auto">
+        <source src="https://objectstorage.us-ashburn-1.oraclecloud.com/n/idsnhb2bf1vi/b/bucket-20261028-1356/o/partido.mp4" type="video/mp4">
+    </video>
 
-<script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        const video = document.getElementById('tvChannel');
+        const pantallaEspera = document.getElementById('pantallaEspera');
+        const textoCuenta = document.getElementById('cuentaRegresiva');
 
-<script>
-const VIDEO_ID = "_GXcnKfDN-g";
+        // 🔴 AQUÍ CONFIGURAS LA HORA EXACTA DEL ESTRENO 🔴
+        // Formato: AAAA-MM-DDTHH:MM:00-05:00 (-05:00 es la zona horaria exacta de Ecuador)
+        const horaEstreno = new Date("2026-10-28T14:45:00-05:00").getTime();
 
-/*
-14:45 Ecuador = UTC-5
+        let reproduccionIniciada = false;
 
-Ejemplo para hoy:
-28 Oct 2026 14:45 Ecuador
-=
-28 Oct 2026 19:45 UTC
-*/
-const START = new Date("2026-10-28T19:45:00Z").getTime();
+        function sincronizarCanal() {
+            const ahora = Date.now();
+            const diferenciaSegundos = Math.floor((horaEstreno - ahora) / 1000);
 
-let player;
-let duration = 0;
+            if (diferenciaSegundos > 0) {
+                // Aún no es la hora: Mostrar cuenta regresiva (Horas, Minutos, Segundos)
+                const horas = Math.floor(diferenciaSegundos / 3600);
+                const minutos = Math.floor((diferenciaSegundos % 3600) / 60);
+                const segundos = diferenciaSegundos % 60;
+                
+                let textoTimer = "";
+                if (horas > 0) textoTimer += `${horas}h `;
+                textoTimer += `${minutos}m ${segundos}s`;
+                
+                textoCuenta.innerText = textoTimer;
+            } else {
+                // Ya pasó la hora de estreno: Iniciar el partido
+                if (!reproduccionIniciada) {
+                    pantallaEspera.style.display = 'none';
+                    video.style.display = 'block';
+                    reproduccionIniciada = true;
+                }
 
-function onYouTubeIframeAPIReady() {
+                if (video.duration) {
+                    // Calcula cuántos segundos han pasado desde las 14:45
+                    const tiempoTranscurrido = Math.floor((ahora - horaEstreno) / 1000);
+                    
+                    // Con el %, si el partido dura 2 horas y alguien entra a las 3 horas, el video vuelve a empezar (Canal 24/7)
+                    const segundoExacto = tiempoTranscurrido % video.duration;
 
-    player = new YT.Player("player", {
-        videoId: VIDEO_ID,
+                    // Si el video de un jugador se desfasa por más de 3 segundos (por lag del servidor o carga), lo corrige forzosamente
+                    if (Math.abs(video.currentTime - segundoExacto) > 3) {
+                        video.currentTime = segundoExacto;
+                    }
 
-        playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            rel: 0,
-            modestbranding: 1,
-            iv_load_policy: 3,
-            fs: 0
-        },
-
-        events: {
-            onReady: onReady
+                    // Forzar reproducción
+                    if (video.paused) {
+                        video.play().catch(() => {
+                            // En Minecraft a veces pide silenciar el primer click
+                            video.muted = true;
+                            video.play();
+                        });
+                    }
+                }
+            }
         }
-    });
-}
 
-function getTargetTime() {
-
-    const elapsed =
-        Math.floor((Date.now() - START) / 1000);
-
-    return Math.max(0, elapsed);
-}
-
-function syncPlayer() {
-
-    if (!player || !duration) return;
-
-    const target = getTargetTime();
-
-    if (target < 0) return;
-
-    const current = player.getCurrentTime();
-
-    if (Math.abs(current - target) > 3) {
-        player.seekTo(target, true);
-    }
-
-    try {
-        player.unMute();
-        player.setVolume(100);
-        player.playVideo();
-    } catch(e){}
-}
-
-function onReady() {
-
-    duration = player.getDuration();
-
-    syncPlayer();
-
-    setInterval(syncPlayer, 5000);
-}
-</script>
-
+        // Ejecutar el reloj interno cada 1 segundo (1000 ms)
+        setInterval(sincronizarCanal, 1000);
+    </script>
 </body>
 </html>
